@@ -1,11 +1,11 @@
 # Code for everything required for the client. Ability to send messages, encrypt and decrypt sent messages.
-from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes
 
 
 username = ""
 message = ""
+decMessage = ""
 
 
 def generate_key_pair():
@@ -58,20 +58,24 @@ else:
     print("Username Accepted")
 
 while True:
+    print("Welcome to the application, please type 'Exit' to leave.")
     while message == "":
         message = input("Enter Message: ")
 
     if message == "":
         print("No message provided")
+    if message == "Exit":
+        break
     else:
         print("Message Accepted, sending...")
         message = message.encode(encoding='UTF-8')
         encMessage = encrypt(message, public_key)
         decMessage = decrypt(encMessage, private_key)
-        print(message)
+        if message == decMessage:
+            print("Message arrived unedited")
+        else:
+            print("Message has been edited in transit")
+        print(message.decode())
         print(encMessage)
-        print(username, "-->", decMessage)
-        message = input("Enter Message: ")
-
-    if message == "Exit":
-        break
+        print(username, "-->", decMessage.decode())
+        message = ""
