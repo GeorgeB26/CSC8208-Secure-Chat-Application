@@ -1,11 +1,14 @@
 # Code for everything required for the client. Ability to send messages, encrypt and decrypt sent messages.
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes
+import zipfile
 
 
 username = ""
 message = ""
 decMessage = ""
+filename = ""
+filezipped = ""
 
 
 def generate_key_pair():
@@ -21,6 +24,11 @@ def generate_key_pair():
 
 
 private_key, public_key = generate_key_pair()
+
+
+def zip(filename):
+    zipfile.ZipFile('send.zip', mode='w').write(filename)
+# TODO: Ensure this can take user input to select a file from their machine,then pass to encryption before sending.
 
 
 def encrypt(message, public_key):
