@@ -24,6 +24,15 @@
 # cursor.close()
 # conn.close()
 
+"""
+    Details of database:
+        Host: localhost
+        Port: 27017
+        DB: CSC8208
+        Username: root
+        Password: WC.cw0718
+"""
+
 from pymongo import MongoClient
 
 # MongoDB Client
