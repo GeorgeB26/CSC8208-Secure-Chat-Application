@@ -1,11 +1,17 @@
 import socket
 import threading
 import bcrypt
+import time
 from collections import Counter
+import ssl
 import logging
 
 HOST = '127.0.0.1'
 PORT = 65432
+
+# SSL context setup
+context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+context.load_cert_chain(certfile='certificate.pem', keyfile='key.pem')
 
 clients = []
 users = {}
@@ -112,19 +118,17 @@ def remove(connection, group_name):
 
 
 def start_server():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
-        s.listen()
-        logging.info(f'Server started, listening on {HOST}:{PORT}...')
-
-        # Start system monitoring in a separate thread
-        threading.Thread(target=monitor_system, daemon=True).start()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.bind((HOST, PORT))
+        server_socket.listen()
+        print(f'Secure server started, listening on {HOST}:{PORT}...')
 
         while True:
-            conn, addr = s.accept()
-            clients.append(conn)
-            logging.info(f"New connection from {addr}. Total connections: {len(clients)}")
-            t = threading.Thread(target=client_thread, args=(conn, addr))
+            client_socket, addr = server_socket.accept()
+            secure_conn = context.wrap_socket(client_socket, server_side=True)
+
+            print(f'Secure connection established with {addr}')
+            t = threading.Thread(target=client_thread, args=(secure_conn, addr))
             t.start()
 
 
