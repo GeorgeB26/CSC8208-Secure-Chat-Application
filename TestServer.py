@@ -1,6 +1,7 @@
 import socket
 import threading
 import bcrypt
+from collections import Counter
 import logging
 
 HOST = '127.0.0.1'
@@ -10,21 +11,39 @@ clients = []
 users = {}
 groups = {"general": []}
 message_id_counter = 1
+error_counts = Counter()
+alert_thresholds = {
+    'high_connection_count': 10,
+    'high_error_rate': 5,  # Per minute
+    'high_message_rate': 50,  # Per minute
+}
+message_rate = 0
 
 # Set up basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+def alert_system(alert_message):
+    print(f"ALERT: {alert_message}")
+
+
 def monitor_system():
+    global message_rate
     while True:
-        try:
-            # Example monitoring: Log the number of active connections every minute
-            logging.info(f"Current active connections: {len(clients)}")
-            for group, members in groups.items():
-                logging.info(f"{group} group has {len(members)} members")
-            threading.Event().wait(60)
-        except Exception as e:
-            logging.error(f"Monitoring error: {e}")
+        if len(clients) > alert_thresholds['high_connection_count']:
+            alert_system("High number of connections detected.")
+
+        if error_counts['minute'] > alert_thresholds['high_error_rate']:
+            alert_system("High error rate detected.")
+
+        if message_rate > alert_thresholds['high_message_rate']:
+            alert_system("Unusually high message traffic detected.")
+
+        # Reset counters
+        error_counts['minute'] = 0
+        message_rate = 0
+
+        time.sleep(60)
 
 
 def client_thread(conn, addr):
