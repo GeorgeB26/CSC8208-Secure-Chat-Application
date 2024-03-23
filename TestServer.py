@@ -11,11 +11,11 @@ PORT = 65432
 
 # SSL context setup
 context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-context.load_cert_chain(certfile='certificate.pem', keyfile='key.pem')
+context.load_cert_chain(certfile='sslcertificate.pem', keyfile='sslkey.pem')
 
-clients = []
-users = {}
-groups = {"general": []}
+clients = {}  # Track clients with their usernames as keys
+users = {}  # Track users and their group memberships
+groups = {"general": {"members": [], "admin": ""}}  # Track group members and the admin
 message_id_counter = 1
 error_counts = Counter()
 alert_thresholds = {
@@ -83,6 +83,48 @@ def client_thread(conn, addr):
             if data.startswith('delete:'):
                 _, msg_id_str = data.split(':')
                 broadcast(f"delete:{msg_id_str}", current_group, include_self=True)
+            elif data.startswith('create_group:'):
+                _, group_name = data.split(':')
+                if group_name in groups:
+                    conn.send("Group already exists.".encode())
+                else:
+                    groups[group_name] = {"members": [username], "admin": username}
+                    users[username]['groups'].append(group_name)
+                    conn.send(f"Group '{group_name}' created. You are the admin.".encode())
+            elif data.startswith('invite:'):
+                _, group_name, invited_user = data.split(':')
+                if group_name in groups and groups[group_name]['admin'] == username:
+                    if invited_user in users:
+                        users[invited_user]['groups'].append(group_name)
+                        groups[group_name]['members'].append(invited_user)
+                        conn.send(f"User '{invited_user}' invited to group '{group_name}'.".encode())
+                        if invited_user in clients:
+                            clients[invited_user].send(f"You've been invited to join the group '{group_name}'.".encode())
+                    else:
+                        conn.send("User does not exist.".encode())
+                else:
+                    conn.send("You are not the admin or the group does not exist.".encode())
+            elif data.startswith('kick:'):
+                _, group_name, kicked_user = data.split(':')
+                if group_name in groups and groups[group_name]['admin'] == username and kicked_user in groups[group_name]['members']:
+                    groups[group_name]['members'].remove(kicked_user)
+                    users[kicked_user]['groups'].remove(group_name)
+                    conn.send(f"User '{kicked_user}' kicked from group '{group_name}'.".encode())
+                    if kicked_user in clients:
+                        clients[kicked_user].send(f"You've been kicked from the group '{group_name}'.".encode())
+                else:
+                    conn.send("Cannot kick the user. You might not be the admin.".encode())
+            elif data.startswith('delete_group:'):
+                _, group_name = data.split(':')
+                if group_name in groups and groups[group_name]['admin'] == username:
+                    for member in groups[group_name]['members']:
+                        users[member]['groups'].remove(group_name)
+                        if member in clients:
+                            clients[member].send(f"The group '{group_name}' has been deleted.".encode())
+                    del groups[group_name]
+                    conn.send(f"Group '{group_name}' deleted.".encode())
+                else:
+                    conn.send("You are not the admin or the group does not exist.".encode())
             elif data.startswith('join:'):
                 _, group_name = data.split(':')
                 if group_name not in groups:

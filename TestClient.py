@@ -7,8 +7,11 @@ PRIMARY_PORT = 65432
 BACKUP_PORT = 65433
 
 # SSL context setup
-context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-context.load_verify_locations('certificate.pem')
+# context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+# context.load_verify_locations('certificate.pem')
+context = ssl.create_default_context()
+context.check_hostname = False
+context.verify_mode = ssl.CERT_NONE
 
 
 def receive_message(s):
@@ -67,6 +70,9 @@ def start_client():
             message = input('')
             if message.lower() == 'exit':
                 break
+            elif message.startswith('create_group '):
+                group_name = message.split(' ')[1]
+                secure_sock.send(f"create_group:{group_name}".encode())
             elif message.startswith('delete '):
                 msg_id = message.split(' ')[1]
                 secure_sock.send(f"delete:{msg_id}".encode())
