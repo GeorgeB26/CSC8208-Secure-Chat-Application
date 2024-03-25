@@ -103,11 +103,11 @@ group_members_data = {
 
 # insert the data to collections
 result_device = db.Devices.insert_one(device_data)
-result_server= db.Servers.insert_one(server_data)
+result_server = db.Servers.insert_one(server_data)
 result_backup = db.Backup.insert_one(backup_data)
 result_chat_session_document = db.ChatSession.insert_one(chat_session_document)
 result_biometrics = db.Biometrics.insert_one(biometrics_data)
-result_group= db.Group.insert_one(group_data)
+result_group = db.Group.insert_one(group_data)
 result_group_members = db.GroupMembers.insert_one(group_members_data)
 
 print(f"Inserted document with id {result_device.inserted_id}")

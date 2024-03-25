@@ -43,7 +43,7 @@ def connect_to_server(host, port):
 def start_client():
     secure_sock = connect_to_server(HOST, PRIMARY_PORT)
 
-    # Fallback to backup server if primary connection fails
+    # Fallback to back up server if primary connection fails
     if not secure_sock:
         print('Trying to connect to the backup server...')
         secure_sock = connect_to_server(HOST, BACKUP_PORT)
