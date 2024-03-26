@@ -10,6 +10,7 @@ from TestDatabase import user_data, messages_data, group_data
 import re
 from bson import ObjectId
 
+
 # SSL context setup
 context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
 context.load_cert_chain(certfile='TLS/server.crt', keyfile='TLS/server.key')
@@ -113,7 +114,7 @@ def delete_message(message_id, username):
         "name": message["group_name"],
         "$or": [
             {"members": {"$elemMatch": {"username": username, "role": "administrator"}}},
-            {"members.username": username, "members": {"$elemMatch": {"username": message["username"]}}}
+            {"members_username": username, "members": {"$elemMatch": {"username": message["username"]}}}
         ]
     })
 
@@ -159,7 +160,7 @@ def update_message_visibility(message_id, admin_username, visible_to):
             return False, "Invalid message ID."
 
         # Verify the message belongs to a group the admin manages
-        if not any(group["name"] == message["group_name"] for group in admin_groups):
+        if not any(group["name"] == message["group_data.name"] for group in admin_groups):
             return False, "Permission denied: Not an admin of the relevant group."
 
         # Validate user list
