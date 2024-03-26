@@ -43,7 +43,8 @@ client = MongoClient('localhost', 27017)
 db = client['CSC8208']
 
 # Connect to collections
-collection = db['device.collection']
+collection = db['Test']
+devices_collection = db['devices_collection']
 
 print("Successful")
 
@@ -62,11 +63,9 @@ device_data = {
     "Data": "Some data or message",
     "Timestamp": datetime.now()
 }
-device_insertion_result = db.devices_collection.insert_one(device_data)
 
 server_data = {
     "Server_id": 1,
-    "Device_id": device_data['_id'],
     "EncryptedData": "some_encrypted_data",
     "Timestamp": datetime.now()
 }
@@ -74,32 +73,31 @@ server_data = {
 backup_data = {
     "Backup_id": 1,
     "Server_id": server_data['Server_id'],
-    "Device_id": device_insertion_result.inserted_id,
     "EncryptedData": server_data['EncryptedData'],
     "Timestamp": datetime.now(),
     "Status": "status of backup"
 }
 
 chat_session_document = {
-    "Device_id": device_insertion_result.inserted_id,
     "StartTime": datetime.now(),
     "EndTime": datetime.now() + timedelta(hours=1)  # Assume the time delta is an hour
 }
 
 biometrics_data = {
     "biometrics_id": 1,
-    "Device_id": device_insertion_result.inserted_id,
     "Data": "Biometrics data"
 }
 
 group_data = {
     "name": "Group name",
     "members_username": user_data['username'],
+    "role": "role of group members",
     "Timestamp": datetime.now()
 }
 
 group_members_data = {
     "member_id": "Group members' id",
+    "role": "role of group members",
     "Timestamp": datetime.now()
 }
 
@@ -112,7 +110,7 @@ messages_data = {
 }
 
 # insert the data to collections
-result_device = db.divices_collection.insert_one(device_data)
+result_device = db.devices_collection.insert_one(device_data)
 result_server = db.Servers.insert_one(server_data)
 result_backup = db.Backup.insert_one(backup_data)
 result_chat_session_document = db.ChatSession.insert_one(chat_session_document)
