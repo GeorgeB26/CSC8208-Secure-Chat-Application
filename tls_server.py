@@ -5,9 +5,8 @@ import time
 import logging
 from collections import Counter
 from datetime import datetime
-
 import bcrypt
-from TestDatabase import result_device, device_data
+from TestDatabase import user_data, messages_data, group_data
 import re
 from bson import ObjectId
 
@@ -18,10 +17,7 @@ context.load_cert_chain(certfile='TLS/server.crt', keyfile='TLS/server.key')
 HOST = '127.0.0.1'
 PORT = 65432
 
-clients = {}  # Track clients with their usernames as keys
-users = {}  # Track users and their group memberships
-groups = {"general": {"members": [], "admin": ""}}  # Track group members and the admin
-message_id_counter = 1
+
 error_counts = Counter()
 alert_thresholds = {
     'high_connection_count': 10,
@@ -42,8 +38,6 @@ def alert_system(alert_message):
 def monitor_system():
     global message_rate
     while True:
-        if len(clients) > alert_thresholds['high_connection_count']:
-            alert_system("High number of connections detected.")
 
         if error_counts['minute'] > alert_thresholds['high_error_rate']:
             alert_system("High error rate detected.")
@@ -62,7 +56,7 @@ def register_user(username, password):
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
     try:
-        result_device({"Sender": username, "password": hashed_password})
+        user_data.insert_one({"username": username, "password": hashed_password})
         return True
     except Exception as e:  # Catch exceptions related to duplicate username or other insertion errors
         print(e)
@@ -70,7 +64,7 @@ def register_user(username, password):
 
 
 def login_user(username, password):
-    user = device_data.find_one({"Sender": username})
+    user = user_data.find_one({"username": username})
 
     if user and bcrypt.checkpw(password.encode(), user["password"]):
         return True
@@ -78,14 +72,14 @@ def login_user(username, password):
 
 
 def send_group_message(group_name, username, message):
-    group = groups_collection.find_one({"name": group_name})
+    group = group_data.find_one({"name": group_name})
     if not group:
         return False, "Group not found."
 
     # Create a list of current group members' usernames
     visible_to = [member['username'] for member in group['members']]
 
-    messages_collection.insert_one({
+    messages_data.insert_one({
         "group_name": group_name,
         "username": username,
         "message": message,
@@ -97,10 +91,10 @@ def send_group_message(group_name, username, message):
 
 def get_group_messages(group_name, username):
     # Check if user is a member of the group
-    if not groups_collection.find_one({"name": group_name, "members.username": username}):
+    if not group_data.find_one({"name": group_name, "members_username": username}):
         return False, "You must be a member of the group to view messages."
     # Retrieve messages for the group that are visible to the requesting user
-    messages = messages_collection.find({
+    messages = messages_data.find({
         "group_name": group_name,
         "visible_to": username
     }).sort("timestamp", -1)
@@ -109,13 +103,13 @@ def get_group_messages(group_name, username):
 
 def delete_message(message_id, username):
     # Attempt to find the message by ID
-    message = messages_collection.find_one({"_id": ObjectId(message_id)})
+    message = messages_data.find_one({"_id": ObjectId(message_id)})
 
     if not message:
         return False, "Message not found."
 
     # Check if the user is the sender or an administrator of the group
-    group = groups_collection.find_one({
+    group = group_data.find_one({
         "name": message["group_name"],
         "$or": [
             {"members": {"$elemMatch": {"username": username, "role": "administrator"}}},
@@ -127,7 +121,7 @@ def delete_message(message_id, username):
         return False, "You don't have permission to delete this message."
 
     # Update the message to mark it as deleted (or you could actually remove it)
-    result = messages_collection.update_one(
+    result = messages_data.update_one(
         {"_id": ObjectId(message_id)},
         {"$set": {"deleted": True}}
     )
@@ -153,14 +147,14 @@ def update_message_visibility(message_id, admin_username, visible_to):
 
     try:
         # Check if the user is an administrator of any group
-        admin_groups = groups_collection.find(
+        admin_groups = group_data.find(
             {"members": {"$elemMatch": {"username": admin_username, "role": "administrator"}}})
         admin_groups = list(admin_groups)  # Convert cursor to list
         if not admin_groups:
             return False, "Permission denied: You're not an administrator."
 
         # Check for valid message ID
-        message = messages_collection.find_one({"_id": ObjectId(message_id)})
+        message = messages_data.find_one({"_id": ObjectId(message_id)})
         if not message:
             return False, "Invalid message ID."
 
@@ -175,7 +169,7 @@ def update_message_visibility(message_id, admin_username, visible_to):
             return False, f"Invalid usernames: {', '.join(invalid_users)}"
 
         # Update message visibility
-        result = messages_collection.update_one(
+        result = messages_data.update_one(
             {"_id": ObjectId(message_id)},
             {"$set": {"visible_to": visible_to}}
         )
@@ -247,6 +241,7 @@ def start_server():
                 conn, addr = ssock.accept()
                 t = threading.Thread(target=handle_client, args=(conn, addr))
                 t.start()
+
 
 if __name__ == '__main__':
     start_server()

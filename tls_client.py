@@ -67,5 +67,6 @@ def start_client():
                     response = ssock.recv(1024).decode()
                     print(response)
 
+
 if __name__ == '__main__':
     start_client()
