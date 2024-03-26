@@ -4,6 +4,8 @@ import threading
 import time
 import logging
 from collections import Counter
+from datetime import datetime
+
 import bcrypt
 from TestDatabase import result_device, device_data
 import re
@@ -87,7 +89,7 @@ def send_group_message(group_name, username, message):
         "group_name": group_name,
         "username": username,
         "message": message,
-        "timestamp": datetime.datetime.utcnow(),
+        "timestamp": datetime.utcnow(),
         "visible_to": visible_to
     })
     return True, "Message sent."
