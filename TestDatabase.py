@@ -100,6 +100,19 @@ group_members_data = {
     "Timestamp": datetime.now()
 }
 
+user_data = {
+    "username": "username",
+    "password": "password encrypted"
+}
+
+messages_data=({
+        "group_name": group_data['GroupName'],
+        "username": user_data["username"],
+        "message": "message",
+        "timestamp": datetime.now(),
+        "visible_to": "visible_to"
+    })
+
 
 # insert the data to collections
 result_device = db.Devices.insert_one(device_data)
@@ -109,6 +122,9 @@ result_chat_session_document = db.ChatSession.insert_one(chat_session_document)
 result_biometrics = db.Biometrics.insert_one(biometrics_data)
 result_group = db.Group.insert_one(group_data)
 result_group_members = db.GroupMembers.insert_one(group_members_data)
+result_users = db.Users.insert_one(user_data)
+result_messages = db.Messages.insert_one(messages_data)
+
 
 print(f"Inserted document with id {result_device.inserted_id}")
 print(f"Inserted document with id {result_server.inserted_id}")
@@ -117,3 +133,4 @@ print(f"Inserted document with id {result_chat_session_document.inserted_id}")
 print(f"Inserted document with id {result_biometrics.inserted_id}")
 print(f"Inserted document with id {result_group.inserted_id}")
 print(f"Inserted document with id {result_group_members.inserted_id}")
+print(f"Inserted document with id {result_messages.inserted_id}")
