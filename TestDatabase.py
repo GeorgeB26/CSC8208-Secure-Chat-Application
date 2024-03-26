@@ -91,11 +91,13 @@ biometrics_data = {
 group_data = {
     "name": "Group name",
     "members_username": user_data['username'],
+    "role": "role of group members",
     "Timestamp": datetime.now()
 }
 
 group_members_data = {
     "member_id": "Group members' id",
+    "role": "role of group members",
     "Timestamp": datetime.now()
 }
 
