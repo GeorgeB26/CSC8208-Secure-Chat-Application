@@ -1,6 +1,7 @@
 import socket
-import threading
 import ssl
+import threading
+import getpass
 
 HOST = '127.0.0.1'
 PRIMARY_PORT = 65432
@@ -9,10 +10,11 @@ BACKUP_PORT = 65433
 # SSL context setup
 # context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
 # context.load_verify_locations('certificate.pem')
-context = ssl.create_default_context()
+context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+context.load_verify_locations('TLS/server.crt')
 context.check_hostname = False
 context.verify_mode = ssl.CERT_NONE
-
+# context = ssl._create_unverified_context()
 
 def receive_message(s):
     while True:
@@ -29,58 +31,59 @@ def receive_message(s):
             break
 
 
-def connect_to_server(host, port):
-    try:
-        sock = socket.create_connection((host, port))
-        secure_sock = context.wrap_socket(sock, server_hostname=host)
-        print(f'Secure connection established with {host}:{port}')
-        return secure_sock
-    except (ConnectionRefusedError, TimeoutError):
-        print(f'Failed to connect to {host}:{port}')
-        return None
+# def connect_to_server(host, port):
+    # try:
+        # sock = socket.create_connection((host, port))
+        # secure_sock = context.wrap_socket(sock, server_hostname=host)
+        # print(f'Secure connection established with {host}:{port}')
+        # return secure_sock
+        # except (ConnectionRefusedError, TimeoutError):
+        # print(f'Failed to connect to {host}:{port}')
+        # return None
 
 
 def start_client():
-    secure_sock = connect_to_server(HOST, PRIMARY_PORT)
+    # secure_sock = connect_to_server(HOST, PRIMARY_PORT)
 
     # Fallback to back up server if primary connection fails
-    if not secure_sock:
-        print('Trying to connect to the backup server...')
-        secure_sock = connect_to_server(HOST, BACKUP_PORT)
+    #  if not secure_sock:
+        # print('Trying to connect to the backup server...')
+        # secure_sock = connect_to_server(HOST, BACKUP_PORT)
 
-    if not secure_sock:
-        print('Could not connect to any server.')
-        return
+    # if not secure_sock:
+        # print('Could not connect to any server.')
+        # return
+    with socket.create_connection((HOST, PRIMARY_PORT)) as sock:
+        with context.wrap_socket(sock, server_hostname=HOST) as secure_sock:
+            print(f'Secure connection established with {HOST}:{PRIMARY_PORT}')
+            threading.Thread(target=receive_message, args=(secure_sock,)).start()
+            while True:
+                mode = input("Choose 'register' or 'login': ")
+                if mode in ['register', 'login']:
+                    username = input("Username: ")
+                    password = input("Password: ")
+                    auth_data = f"{username}:{password}:{mode}"
+                    secure_sock.send(auth_data.encode())
+                    response = secure_sock.recv(1024).decode()
+                    print(response)
+                if "successful" in response:
+                    message = input('')
+                    if message.lower() == 'exit':
+                        break
+                    elif message.startswith('create_group '):
+                        group_name = message.split(' ')[1]
+                        secure_sock.send(f"create_group:{group_name}".encode())
+                    elif message.startswith('delete '):
+                        msg_id = message.split(' ')[1]
+                        secure_sock.send(f"delete:{msg_id}".encode())
+                    elif message.startswith('join '):
+                        group_name = message.split(' ')[1]
+                        secure_sock.send(f"join:{group_name}".encode())
+                    elif message:
+                        secure_sock.send(message.encode())
 
-    while True:
-        mode = input("Choose 'register' or 'login': ")
-        if mode in ['register', 'login']:
-            username = input("Username: ")
-            password = input("Password: ")
-            auth_data = f"{username}:{password}:{mode}"
-            secure_sock.send(auth_data.encode())
-            response = secure_sock.recv(1024).decode()
-            print(response)
-            if "successful" in response:
-                break
+            # while True:
 
-        threading.Thread(target=receive_message, args=(secure_sock,)).start()
-
-        while True:
-            message = input('')
-            if message.lower() == 'exit':
-                break
-            elif message.startswith('create_group '):
-                group_name = message.split(' ')[1]
-                secure_sock.send(f"create_group:{group_name}".encode())
-            elif message.startswith('delete '):
-                msg_id = message.split(' ')[1]
-                secure_sock.send(f"delete:{msg_id}".encode())
-            elif message.startswith('join '):
-                group_name = message.split(' ')[1]
-                secure_sock.send(f"join:{group_name}".encode())
-            elif message:
-                secure_sock.send(message.encode())
 
 
 start_client()

@@ -10,8 +10,9 @@ HOST = '127.0.0.1'
 PORT = 65432
 
 # SSL context setup
-context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-context.load_cert_chain(certfile='sslcertificate.pem', keyfile='sslkey.pem')
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+context.load_cert_chain(certfile='TLS/server.crt', keyfile='TLS/server.key')
+
 
 clients = {}  # Track clients with their usernames as keys
 users = {}  # Track users and their group memberships
